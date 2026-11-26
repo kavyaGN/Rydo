@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "AI Ride Booking"
+    app_name: str = "Rydo API"
     app_env: Literal["local", "development", "staging", "production", "test"] = "local"
     app_debug: bool = False
     app_version: str = "0.1.0"
@@ -50,6 +50,9 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
     log_format: Literal["json", "text"] = "json"
+
+    rate_limit_enabled: bool = True
+    auth_rate_limit_per_minute: int = 10
 
     jwt_secret_key: str = "change-this-to-a-long-random-secret"
     jwt_algorithm: str = "HS256"

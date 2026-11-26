@@ -1,5 +1,5 @@
-from datetime import UTC, datetime
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -15,9 +15,21 @@ from app.infrastructure.database.models.ride_rejection_model import RideRejectio
 from app.infrastructure.database.models.user_model import UserModel
 from app.infrastructure.database.models.vehicle_model import VehicleModel
 from app.infrastructure.services.notification_service import NotificationService
-from app.schemas.requests.ride_requests import CancelRideRequest, PaymentCreateRequest, RatingCreateRequest, RideCreateRequest, RideRatingCreateRequest
+from app.schemas.requests.ride_requests import (
+    CancelRideRequest,
+    PaymentCreateRequest,
+    RatingCreateRequest,
+    RideCreateRequest,
+    RideRatingCreateRequest,
+)
 from app.schemas.responses.driver_responses import NearbyVehicleResponse
-from app.schemas.responses.ride_responses import PaymentResponse, RatingResponse, RideDriverDetailsResponse, RideResponse, RideVehicleDetailsResponse
+from app.schemas.responses.ride_responses import (
+    PaymentResponse,
+    RatingResponse,
+    RideDriverDetailsResponse,
+    RideResponse,
+    RideVehicleDetailsResponse,
+)
 from app.services.fare_calculation_service import FareCalculationService
 from app.services.ride_matching_service import RideMatchingService
 

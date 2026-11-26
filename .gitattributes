@@ -1,0 +1,5 @@
+# Keep LF endings in the repo so Docker images and shell scripts behave the same on every OS.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from app.api.v1.router import api_router
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
+from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.settings import get_settings
 from app.database import SessionLocal
 
@@ -40,6 +41,8 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if not settings.is_production else None,
     )
 
+    app.add_middleware(RequestContextMiddleware)
+
     if settings.backend_cors_origins:
         app.add_middleware(
             CORSMiddleware,
@@ -47,6 +50,7 @@ def create_app() -> FastAPI:
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],
+            expose_headers=[REQUEST_ID_HEADER, "Retry-After"],
         )
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)

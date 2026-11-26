@@ -197,7 +197,8 @@ def _entities_with_memory(user_message: str, request_context: dict[str, Any]) ->
                 break
 
     if not _has_explicit_route(user_message):
-        for previous in extracted_messages[:-1]:
+        # Newest first, so a corrected pickup/destination wins over an older one.
+        for previous in reversed(extracted_messages[:-1]):
             if previous.intent != "book_ride":
                 continue
             if current.intent == "general":

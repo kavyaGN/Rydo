@@ -24,11 +24,11 @@ def configure_logging(settings: Settings) -> None:
     if settings.log_format == "json":
         formatter = {
             "()": "app.core.logging.JsonFormatter",
-            "format": "%(asctime)s %(level)s %(name)s %(message)s",
+            "format": "%(asctime)s %(level)s %(name)s %(request_id)s %(message)s",
         }
     else:
         formatter = {
-            "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+            "format": "%(asctime)s | %(levelname)s | %(name)s | %(request_id)s | %(message)s",
         }
 
     logging.config.dictConfig(
@@ -36,10 +36,12 @@ def configure_logging(settings: Settings) -> None:
             "version": 1,
             "disable_existing_loggers": False,
             "formatters": {"default": formatter},
+            "filters": {"request_id": {"()": "app.core.request_context.RequestIdLogFilter"}},
             "handlers": {
                 "default": {
                     "class": "logging.StreamHandler",
                     "formatter": "default",
+                    "filters": ["request_id"],
                     "stream": "ext://sys.stdout",
                 }
             },
@@ -48,9 +50,11 @@ def configure_logging(settings: Settings) -> None:
                 "level": settings.log_level.upper(),
             },
             "loggers": {
+                # Access lines come from RequestContextMiddleware (with request ids),
+                # so silence uvicorn's own duplicate access log.
                 "uvicorn.access": {
                     "handlers": ["default"],
-                    "level": settings.log_level.upper(),
+                    "level": "WARNING",
                     "propagate": False,
                 },
                 "sqlalchemy.engine": {
