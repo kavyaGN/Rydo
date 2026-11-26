@@ -13,7 +13,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "AI Ride Booking"
+    app_name: str = "Rydo API"
     app_env: Literal["local", "development", "staging", "production", "test"] = "local"
     app_debug: bool = False
     app_version: str = "0.1.0"
