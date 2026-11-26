@@ -1,11 +1,21 @@
+# One command runs the whole system:  docker compose up --build
+#   Web app  -> http://localhost:5173
+#   API docs -> http://localhost:8000/docs
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ride_booking_api
+    container_name: rydo_api
     env_file:
       - .env.example
+    environment:
+      # Inside Docker, services reach each other by service name, not localhost.
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: "8000"
+      APP_ENV: development
     ports:
       - "8000:8000"
     depends_on:
@@ -15,13 +25,26 @@ services:
         condition: service_healthy
       chromadb:
         condition: service_started
-    volumes:
-      - .:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Apply migrations and load demo data before serving traffic.
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m scripts.seed &&
+             gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 2 --timeout 60"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+    container_name: rydo_web
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 
   postgres:
     image: postgres:17-alpine
-    container_name: ride_booking_postgres
+    container_name: rydo_postgres
     environment:
       POSTGRES_DB: ride_booking
       POSTGRES_USER: ride_booking
@@ -32,13 +55,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ride_booking -d ride_booking"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:8-alpine
-    container_name: ride_booking_redis
+    container_name: rydo_redis
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
@@ -46,17 +69,18 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   chromadb:
-    image: chromadb/chroma:latest
-    container_name: ride_booking_chromadb
+    # Pinned to match the chromadb Python client in requirements.txt.
+    image: chromadb/chroma:1.0.15
+    container_name: rydo_chromadb
     ports:
       - "8001:8000"
     volumes:
-      - chroma_data:/chroma/chroma
+      - chroma_data:/data
 
 volumes:
   postgres_data:
