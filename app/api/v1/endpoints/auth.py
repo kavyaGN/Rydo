@@ -10,6 +10,7 @@ from app.application.use_cases.auth.login_user import (
 from app.application.use_cases.auth.logout_user import LogoutUserUseCase
 from app.application.use_cases.auth.refresh_token import InvalidRefreshTokenError, RefreshTokenUseCase
 from app.application.use_cases.auth.register_user import RegisterUserUseCase, UserAlreadyExistsError
+from app.core.rate_limit import auth_rate_limiter
 from app.infrastructure.database.models.user_model import UserModel
 from app.schemas.requests.auth_requests import LoginRequest, RefreshTokenRequest, RegisterRequest
 from app.schemas.responses.auth_responses import AuthResponse, TokenPairResponse, UserResponse
@@ -17,12 +18,17 @@ from app.schemas.responses.auth_responses import AuthResponse, TokenPairResponse
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=AuthResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(auth_rate_limiter("register"))],
+)
 def register(request: RegisterRequest, db: Session = Depends(get_db)) -> AuthResponse:
     try:
         user, access_token, refresh_token = RegisterUserUseCase(db).execute(request)
     except UserAlreadyExistsError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return AuthResponse(
         user=UserResponse.model_validate(user),
@@ -30,14 +36,14 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)) -> AuthRes
     )
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=AuthResponse, dependencies=[Depends(auth_rate_limiter("login"))])
 def login(request: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
     try:
         user, access_token, refresh_token = LoginUserUseCase(db).execute(request)
     except InvalidCredentialsError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
     except InactiveUserError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
     return AuthResponse(
         user=UserResponse.model_validate(user),
@@ -45,12 +51,12 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
     )
 
 
-@router.post("/refresh", response_model=AuthResponse)
+@router.post("/refresh", response_model=AuthResponse, dependencies=[Depends(auth_rate_limiter("refresh"))])
 def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)) -> AuthResponse:
     try:
         user, access_token, new_refresh_token = RefreshTokenUseCase(db).execute(request.refresh_token)
     except InvalidRefreshTokenError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
     return AuthResponse(
         user=UserResponse.model_validate(user),

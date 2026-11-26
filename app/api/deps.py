@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import uuid
+from collections.abc import Callable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -31,12 +31,12 @@ def get_current_user(
     try:
         payload = jwt_service.decode_access_token(credentials.credentials)
         user_id = uuid.UUID(payload["sub"])
-    except (KeyError, ValueError, TokenError):
+    except (KeyError, ValueError, TokenError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired access token",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from exc
 
     user = db.get(UserModel, user_id)
     if not user or user.deleted_at is not None:

@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: Literal["json", "text"] = "json"
 
+    rate_limit_enabled: bool = True
+    auth_rate_limit_per_minute: int = 10
+
     jwt_secret_key: str = "change-this-to-a-long-random-secret"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15

@@ -1,5 +1,5 @@
-from app.ai.tool_calling.schemas import ToolDefinition, ToolExecutionContext, ToolResult
 from app.ai.tool_calling.registry import ToolRegistry
+from app.ai.tool_calling.schemas import ToolDefinition, ToolExecutionContext, ToolResult
 
 
 def test_registry_executes_registered_tool() -> None:
