@@ -27,8 +27,9 @@ async def test_orchestrator_executes_tool_and_returns_final_response() -> None:
         lambda arguments, context: ToolResult(success=False, message="Missing required fare details"),
     )
 
+    # A general message has no deterministic intent, so it goes through LLM tool planning.
     response = await RideAssistantOrchestrator(FakeToolCallingLLM(), registry).run(
-        "estimate fare",
+        "Can you help me plan my trip?",
         ToolExecutionContext(db=object(), user=object()),
     )
 
