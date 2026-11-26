@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.exceptions import register_exception_handlers
+from app.core.frontend import mount_frontend
 from app.core.logging import configure_logging
 from app.core.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.settings import get_settings
@@ -74,6 +75,8 @@ def create_app() -> FastAPI:
             "redis": "ok",
         }
 
+    # Registered last so its catch-all route never shadows the API.
+    mount_frontend(app, settings.frontend_dist_dir)
     return app
 
 

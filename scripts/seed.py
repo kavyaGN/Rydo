@@ -18,6 +18,9 @@ from app.infrastructure.services.password_service import PasswordService
 
 # Demo-only credentials, documented in the README. Override with DEMO_PASSWORD.
 DEMO_PASSWORD = os.getenv("DEMO_PASSWORD", "Demo@12345")
+# On a public deployment set DEMO_ADMIN_PASSWORD to a secret, so visitors can try the
+# rider and driver flows but cannot open the admin console (which lists all users).
+DEMO_ADMIN_PASSWORD = os.getenv("DEMO_ADMIN_PASSWORD") or DEMO_PASSWORD
 
 USERS = [
     {"email": "admin@rydo.dev", "phone_number": "+919000000001", "full_name": "Rydo Admin", "role": "admin"},
@@ -44,7 +47,7 @@ def _get_or_create_user(db, passwords: PasswordService, *, email: str, phone_num
         status="active",
         is_email_verified=True,
         is_phone_verified=True,
-        password_hash=passwords.hash_password(DEMO_PASSWORD),
+        password_hash=passwords.hash_password(DEMO_ADMIN_PASSWORD if role == "admin" else DEMO_PASSWORD),
     )
     db.add(user)
     db.flush()

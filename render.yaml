@@ -1,0 +1,70 @@
+# Render Blueprint: one click creates the whole live demo.
+#   Dashboard -> New -> Blueprint -> pick this repo -> Apply
+# The web service builds the Dockerfile, which bundles the React app, so the site
+# and the API share one URL (no CORS). Migrations and demo data run on every start.
+services:
+  - type: web
+    name: rydo
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: staging          # not "production", so /docs stays visible for reviewers
+      - key: LOG_FORMAT
+        value: json
+      - key: WEB_CONCURRENCY
+        value: "1"              # free instances have 512 MB of RAM
+      - key: BACKEND_CORS_ORIGINS
+        value: "[]"             # same-origin deployment; no cross-site callers needed
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DEMO_ADMIN_PASSWORD
+        generateValue: true     # rider/driver demo logins stay public; admin does not
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: rydo-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: rydo-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: rydo-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: rydo-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: rydo-db
+          property: password
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: rydo-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: rydo-redis
+          property: port
+
+  - type: keyvalue
+    name: rydo-redis
+    plan: free
+    region: singapore
+    ipAllowList: []             # reachable only from services in this account
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: rydo-db
+    plan: free
+    region: singapore
+    databaseName: ride_booking
+    user: ride_booking
