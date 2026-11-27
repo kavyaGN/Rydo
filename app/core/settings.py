@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     app_debug: bool = False
     app_version: str = "0.1.0"
     api_v1_prefix: str = "/api/v1"
+    # Path to a Vite build to serve from the API (single-URL deployments). Unset = API only.
+    frontend_dist_dir: str | None = None
 
     server_host: str = "0.0.0.0"
     server_port: int = 8000

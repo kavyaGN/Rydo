@@ -109,6 +109,18 @@ booked in the UI. More detail in [docs/architecture.md](docs/architecture.md).
 | Web | React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand |
 | Ops | Docker Compose, nginx, GitHub Actions, ruff, pytest |
 
+## Deploy
+
+The repo includes a [Render Blueprint](render.yaml) that creates the web service, PostgreSQL
+and Redis on free plans: **Render dashboard → New → Blueprint → select this repo → Apply**.
+
+The production [Dockerfile](Dockerfile) is multi-stage. It builds the React app and the API
+serves it, so the site and API share one URL (no CORS) and client-side routes work on refresh.
+Migrations and demo seeding run on every start. On the public deployment the admin password is a
+generated secret, so visitors can try the rider and driver flows but not the admin console.
+Features that need ChromaDB or an LLM key return a clear `503` when those aren't configured; the
+booking assistant keeps working.
+
 ## Local development without Docker
 
 ```bash

@@ -5,7 +5,11 @@ venv
 **/__pycache__
 **/*.pyc
 .pytest_cache
-frontend
+.ruff_cache
+coverage.xml
+.coverage
+frontend/node_modules
+frontend/dist
 docs
 .env
 .env.*

@@ -1,12 +1,13 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.ai.multi_agent import MultiAgentRideAssistant
 from app.ai.orchestration.orchestrator import AIOrchestrator
 from app.ai.providers.factory import get_llm_provider
+from app.ai.schemas import LLMResponse
 from app.ai.tool_calling.schemas import ToolExecutionContext
 from app.ai.tool_calling.tools import create_ride_tool_registry
 from app.api.deps import get_current_user, get_db
@@ -18,6 +19,22 @@ from app.schemas.responses.ai_responses import AIChatResponse, AIConversationRes
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 logger = logging.getLogger(__name__)
+
+
+async def _run_rag_orchestrator(intent: str, message: str) -> LLMResponse:
+    """Run the RAG/LLM orchestrator, which needs ChromaDB and an LLM key.
+
+    Deployments without those (e.g. the free live demo) answer 503 with a clear
+    message instead of a 500; the booking assistant keeps working regardless.
+    """
+    try:
+        return await AIOrchestrator().run(intent, message)
+    except Exception as exc:  # noqa: BLE001 - external AI dependencies; logged below
+        logger.exception("AI orchestrator unavailable", extra={"intent": intent})
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI support is not available on this deployment. The booking assistant still works.",
+        ) from exc
 
 
 @router.get("/provider-status", response_model=AIProviderStatusResponse)
@@ -156,7 +173,7 @@ async def customer_support(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user),
 ) -> AIConversationResponse:
-    response = await AIOrchestrator().run("customer_support", request_body.message)
+    response = await _run_rag_orchestrator("customer_support", request_body.message)
     conversation = AIConversationModel(
         user_id=current_user.id,
         conversation_type="customer_support",
@@ -179,7 +196,7 @@ async def trip_summary(
     current_user: UserModel = Depends(get_current_user),
 ) -> AIConversationResponse:
     message = request_body.ride_notes or f"Generate a customer-friendly summary for ride {ride_id}."
-    response = await AIOrchestrator().run("trip_summary", message)
+    response = await _run_rag_orchestrator("trip_summary", message)
     conversation = AIConversationModel(
         user_id=current_user.id,
         ride_id=ride_id,
